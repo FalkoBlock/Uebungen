@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Übungen">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Übungen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --ink: #000000; --muted: #7A7A7A; --line: #000000; --hair: #E6E6E6; --press: #F4F4F4;
+    --font: "Inter Tight", -apple-system, "Helvetica Neue", Arial, sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000; --ink: #FFFFFF; --muted: #8C8C8C; --line: #FFFFFF; --hair: #262626; --press: #141414;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --ink: #FFFFFF; --muted: #8C8C8C; --line: #FFFFFF; --hair: #262626; --press: #141414;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { height: 100%; -webkit-text-size-adjust: 100%; }
+  body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink);
+         font: 400 16px/1.4 var(--font); -webkit-font-smoothing: antialiased;
+         -webkit-tap-highlight-color: transparent; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* ---------- Liste ---------- */
+  .wrap { max-width: 640px; margin: 0 auto; padding: 22px 20px 64px; }
+  .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--hair); }
+  .tabs button { background: none; border: 0; padding: 10px 0 12px; margin-bottom: -1px; cursor: pointer;
+                 font-size: 15px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; }
+  .tabs button[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+
+  header { padding: 44px 0 34px; }
+  h1 { margin: 0; font-size: clamp(42px, 12vw, 64px); font-weight: 600; line-height: .95; letter-spacing: -0.045em; }
+  .meta { display: flex; gap: 28px; margin-top: 22px; }
+  .meta div { display: flex; flex-direction: column; }
+  .meta b { font-size: 28px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .meta span { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+  h2 { display: flex; justify-content: space-between; margin: 34px 0 0; padding-bottom: 10px;
+       border-bottom: 1px solid var(--line); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+  h2 small { font-size: 13px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  h2.plain { margin-top: 0; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { border-bottom: 1px solid var(--hair); }
+  .row { width: 100%; display: grid; grid-template-columns: 24px 60px 1fr auto; gap: 0 14px; align-items: center;
+         text-align: left; background: none; border: 0; padding: 16px 0; cursor: pointer; }
+  .row:active { background: var(--press); }
+  .num { align-self: start; padding-top: 3px; font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .fig { width: 60px; height: 38px; color: var(--ink); }
+  .txt { min-width: 0; }
+  .name { display: block; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+          margin-top: 2px; color: var(--muted); font-size: 14px; line-height: 1.35; }
+  .dur { align-self: start; font-size: 17px; font-weight: 600; letter-spacing: -0.02em;
+         font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .fig polyline { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+  .fig .l { stroke-width: 4.4; }
+  .fig .t { stroke-width: 6.6; }
+  .fig .w { stroke-width: 1.4; opacity: .45; }
+  .fig circle { fill: currentColor; }
+
+  /* ---------- Timer ---------- */
+  .timer { position: fixed; inset: 0; z-index: 10; background: var(--bg); color: var(--ink); display: none;
+           flex-direction: column; padding: 0 22px calc(26px + env(safe-area-inset-bottom, 0px));
+           transition: background .25s, color .25s; }
+  .timer.open { display: flex; }
+  /* Seitenwechsel: Fläche invertiert, aus der Distanz erkennbar */
+  .timer.rest { background: var(--ink); color: var(--bg); }
+  .progress { position: absolute; left: 0; right: 0; top: env(safe-area-inset-top, 0px); height: 2px; background: var(--hair); }
+  .progress i { display: block; height: 100%; width: 0; background: currentColor; transition: width .1s linear; }
+  .t-top { padding-top: calc(26px + env(safe-area-inset-top, 0px)); display: flex; justify-content: space-between;
+           font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+  .t-top span:first-child { opacity: .55; }
+  .t-main { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 600px; width: 100%; margin: 0 auto; }
+  .t-main .fig { width: 150px; height: 94px; color: currentColor; margin-bottom: 26px; }
+  .t-main h3 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.05; }
+  .t-main p { margin: 10px 0 0; font-size: 17px; opacity: .6; max-width: 32ch; }
+  .time { margin-top: 30px; font-size: clamp(104px, 34vw, 180px); font-weight: 600; line-height: .85;
+          letter-spacing: -0.06em; font-variant-numeric: tabular-nums; }
+  .timer.paused .time { opacity: .3; }
+  .actions { display: flex; gap: 10px; max-width: 600px; width: 100%; margin: 0 auto; }
+  .btn { flex: 1; height: 56px; border-radius: 28px; font-weight: 600; font-size: 17px; cursor: pointer; }
+  .primary { background: currentColor; border: 0; }
+  .primary span { color: var(--bg); }
+  .timer.rest .primary span { color: var(--ink); }
+  .secondary { background: none; border: 1px solid currentColor; }
+  .status { max-width: 600px; width: 100%; margin: 14px auto 0; font-size: 12px; opacity: .5; min-height: 1.3em; }
+
+  @media (prefers-reduced-motion: reduce) { .progress i, .timer { transition: none; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <nav class="tabs" id="tabs" aria-label="Block wählen"></nav>
+  <header>
+    <h1 id="title"></h1>
+    <div class="meta">
+      <div><b id="mCount"></b><span>Übungen</span></div>
+      <div><b id="mMin"></b><span>Minuten</span></div>
+    </div>
+  </header>
+  <div id="sections"></div>
+</main>
+
+<section class="timer" id="timer" aria-live="polite">
+  <div class="progress"><i id="bar"></i></div>
+  <div class="t-top"><span id="tSection"></span><span id="tPhase"></span></div>
+  <div class="t-main">
+    <svg class="fig" id="tFig" viewBox="0 0 80 50" aria-hidden="true"></svg>
+    <h3 id="tName"></h3>
+    <p id="tDesc"></p>
+    <div class="time" id="tTime">0:00</div>
+  </div>
+  <div class="actions">
+    <button class="btn secondary" id="stopBtn" type="button">Abbrechen</button>
+    <button class="btn primary" id="pauseBtn" type="button"><span id="pauseLabel">Pause</span></button>
+  </div>
+  <div class="status" id="status"></div>
+</section>
+
+<script>
+(function () {
+  // ---------- Piktogramme: Raster, Winkel 0/45/90° (wo nötig 2:1), Kopf frei stehend ----------
+  var P = {
+    katzekuh:   { h:[12,30], t:"20,26 32,14 44,26", l:["20,27 20,44", "44,27 44,44 58,44"] },
+    sonnengruss:{ h:[40,9],  t:"40,20 40,31", l:["32,3 32,17 48,17 48,3", "37.6,32 37.6,45", "42.4,32 42.4,45"] },
+    unterarm:   { h:[11,28], t:"18,32 42,32", l:["18,33 18,44 9,44", "42,32 66,44 72,44"] },
+    seitstuetz: { h:[11,21], t:"19,26 43,38", l:["18,25 18,44", "18,22 18,4", "43,38 55,44 71,44"] },
+    vogelhund:  { h:[15,32], t:"24,26 52,26", l:["22,25 6,17", "24,27 24,44", "52,27 52,44 64,44", "54,26 76,26"] },
+    boot:       { h:[18,21], t:"36,40 25,29", l:["36,40 54,22", "30,33 39,33"] },
+    bruecke:    { h:[8,39],  t:"15,42 38,30", l:["38,30 54,30 54,44", "15,44 32,44"] },
+    stuhl:      { h:[32,13], t:"30,32 40,22", l:["40,22 52,10", "30,32 44,32 44,44"] },
+    krieger2:   { h:[40,8],  t:"40,15 40,28", l:["16,17 64,17", "40,30 26,44", "40,30 54,30 54,44"] },
+    ausfall:    { h:[40,9],  t:"40,20 40,30", l:["32,3 32,17 48,17 48,3", "40,31 54,31 54,44", "40,31 28,43 8,43"] },
+    taube:      { h:[34,9],  t:"34,17 34,33", l:["34,19 42,27 42,38", "34,35 42,43 56,43", "34,35 26,43 4,43"] },
+    hund:       { h:[27,43], t:"12,44 28,28", l:["28,28 40,16", "40,16 68,44"] },
+    vorbeuge:   { h:[56,28], t:"28,42 48,32", l:["30,44 72,44", "46,37 68,41"] },
+    faden:      { h:[21,35], t:"54,26 30,38", l:["54,26 54,44 70,44", "32,36 32,12", "30,44 6,44"] },
+    drehung:    { h:[8,39],  t:"15,42 40,42", l:["17,40 25,32", "40,42 50,32 60,42"] },
+    kind:       { h:[33,40], t:"62,34 42,44", l:["62,34 52,44 70,44", "26,44 6,44"] },
+    wade:       { h:[22,9], t:"27,19 40,32", l:["26,19 12,19", "40,33 32,41 32,44", "40,33 62,44"], w:"9,4 9,44" },
+    quad:       { h:[36,7],  t:"36,15 36,29", l:["33,31 33,44", "39,31 39,41 48,32", "37,17 48,28", "35,17 24,17"] },
+    leiste:     { h:[28,10], t:"28,18 28,36", l:["29,39 41,33 53,39", "30,21 37,28"] },
+    hinten:     { h:[24,6],  t:"44,26 30,12", l:["44,27 26,44 22,40", "45,28 51,34 51,44", "31,14 31,34"] },
+    adduktoren: { h:[26,8],  t:"26,16 26,30", l:["25,32 15,42 15,44", "28,32 52,44", "24,18 17,25"] }
+  };
+  function svgFig(d) {
+    return '<circle cx="' + d.h[0] + '" cy="' + d.h[1] + '" r="4.3"/>' +
+           '<polyline class="t" points="' + d.t + '"/>' +
+           d.l.map(function (pts) { return '<polyline class="l" points="' + pts + '"/>'; }).join("") +
+           (d.w ? '<polyline class="w" points="' + d.w + '"/>' : "");
+  }
+  var F = {};
+  Object.keys(P).forEach(function (k) { F[k] = svgFig(P[k]); });
+
+  // ---------- Blöcke → Abschnitte → Übungen (sec = Dauer je Satz, sets = Anzahl / Seiten) ----------
+  var BLOCKS = [
+    { id: "taeglich", tab: "Täglich", title: "Tägliches Training", sections: [
+      { title: "Aufwärmen", items: [
+        { name: "Katze-Kuh", desc: "Vierfüßlerstand. Ausatmen: Rücken rund. Einatmen: Hohlkreuz.", sec: 60, sets: 1, fig: "katzekuh" },
+        { name: "Sonnengruß A", desc: "Eine Bewegung, ein Atemzug. Zwei bis drei Runden.", sec: 120, sets: 1, fig: "sonnengruss" } ]},
+      { title: "Kraft", items: [
+        { name: "Unterarmstütz", desc: "Körper in einer Linie. Bauch und Gesäß fest.", sec: 40, sets: 1, fig: "unterarm" },
+        { name: "Seitstütz", desc: "Hüfte hoch. Füße übereinander. Arm senkrecht.", sec: 40, sets: 2, fig: "seitstuetz" },
+        { name: "Vogel-Hund", desc: "Arm und Gegenbein strecken. Becken ruhig.", sec: 40, sets: 1, fig: "vogelhund" },
+        { name: "Boot", desc: "Auf dem Gesäß. Beine hoch. Rücken gerade.", sec: 40, sets: 1, fig: "boot" },
+        { name: "Brücke", desc: "Becken heben. Oben halten. Langsam senken.", sec: 40, sets: 1, fig: "bruecke" },
+        { name: "Stuhlhaltung", desc: "Tief sitzen. Gewicht auf den Fersen. Arme hoch.", sec: 40, sets: 1, fig: "stuhl" },
+        { name: "Krieger II", desc: "Knie über dem Knöchel. Arme waagerecht.", sec: 40, sets: 2, fig: "krieger2" } ]},
+      { title: "Beweglichkeit", items: [
+        { name: "Tiefer Ausfallschritt", desc: "Hinteres Knie ab. Becken nach vorn unten.", sec: 60, sets: 2, fig: "ausfall" },
+        { name: "Taube", desc: "Vorderes Bein quer, hinteres lang. Aufrecht.", sec: 60, sets: 2, fig: "taube" },
+        { name: "Herabschauender Hund", desc: "Gesäß hoch. Fersen zum Boden. Rücken lang.", sec: 45, sets: 1, fig: "hund" },
+        { name: "Vorbeuge im Sitzen", desc: "Aus der Hüfte kippen. Rücken gerade.", sec: 45, sets: 1, fig: "vorbeuge" },
+        { name: "Faden einfädeln", desc: "Arm unter dem Körper durch. Schulter ab.", sec: 45, sets: 2, fig: "faden" },
+        { name: "Liegende Drehung", desc: "Knie zur Seite. Schultern bleiben unten.", sec: 45, sets: 2, fig: "drehung" } ]},
+      { title: "Abschluss", items: [
+        { name: "Kindhaltung", desc: "Stirn zum Boden. Arme lang. Ruhig atmen.", sec: 90, sets: 1, fig: "kind" } ]}
+    ]},
+    { id: "laufen", tab: "Nach dem Laufen", title: "Dehnen nach dem Laufen", sections: [
+      { title: "", items: [
+        { name: "Waden", desc: "Hände an die Wand. Hinteres Bein gestreckt, Ferse bleibt am Boden.", sec: 30, sets: 2, fig: "wade" },
+        { name: "Oberschenkel vorne", desc: "Ferse zum Gesäß ziehen. Knie zeigt nach unten, Becken leicht vor.", sec: 30, sets: 2, fig: "quad" },
+        { name: "Leiste", desc: "Sitzen, Fußsohlen aneinander. Knie sinken lassen, Rücken lang.", sec: 45, sets: 1, fig: "leiste" },
+        { name: "Oberschenkel hinten", desc: "Bein gestreckt vor, Fußspitze hoch. Mit geradem Rücken aus der Hüfte kippen.", sec: 30, sets: 2, fig: "hinten" },
+        { name: "Oberschenkel innen", desc: "Breiter Stand. Gewicht auf ein Bein verlagern, das andere bleibt gestreckt.", sec: 30, sets: 2, fig: "adduktoren" } ]}
+    ]}
+  ];
+  var SWITCH_SEC = 5;   // Pause zum Seitenwechsel zwischen zwei Sätzen
+
+  function fmt(t) { var s = Math.ceil(Math.max(0, t)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+  function durLabel(ex) { return (ex.sets > 1 ? ex.sets + " \u00d7 " : "") + fmt(ex.sec); }
+  function pad(n) { return String(n).padStart(2, "0"); }
+
+  BLOCKS.forEach(function (b) {
+    b.count = 0; b.total = 0;
+    b.sections.forEach(function (s) { s.items.forEach(function (ex) {
+      ex.no = ++b.count; ex.section = s.title || b.title;
+      b.total += ex.sec * ex.sets + (ex.sets - 1) * SWITCH_SEC; }); });
+  });
+
+  var active = 0;
+  try { var saved = localStorage.getItem("block"); BLOCKS.forEach(function (b, i) { if (b.id === saved) active = i; }); } catch (e) {}
+
+  // ---------- Tabs ----------
+  var tabs = document.getElementById("tabs");
+  BLOCKS.forEach(function (b, i) {
+    var t = document.createElement("button"); t.type = "button"; t.textContent = b.tab;
+    t.addEventListener("click", function () {
+      active = i; try { localStorage.setItem("block", b.id); } catch (e) {}
+      render(); window.scrollTo(0, 0);
+    });
+    tabs.appendChild(t);
+  });
+
+  // ---------- Liste ----------
+  var root = document.getElementById("sections");
+  function render() {
+    var B = BLOCKS[active];
+    [].forEach.call(tabs.children, function (t, i) { t.setAttribute("aria-pressed", i === active ? "true" : "false"); });
+    document.getElementById("title").textContent = B.title;
+    document.getElementById("mCount").textContent = B.count;
+    document.getElementById("mMin").textContent = Math.round(B.total / 60);
+    document.title = B.title;
+    root.textContent = "";
+    B.sections.forEach(function (s) {
+      var h = document.createElement("h2");
+      if (s.title) {
+        var label = document.createElement("span"); label.textContent = s.title;
+        var n = document.createElement("small"); n.textContent = pad(s.items.length);
+        h.append(label, n);
+      } else h.className = "plain";
+      root.appendChild(h);
+      var ul = document.createElement("ul");
+      s.items.forEach(function (ex) {
+        var li = document.createElement("li");
+        var b = document.createElement("button"); b.type = "button"; b.className = "row";
+        b.innerHTML = '<span class="num"></span><svg class="fig" viewBox="0 0 80 50" aria-hidden="true">' + F[ex.fig] +
+          '</svg><span class="txt"><span class="name"></span><span class="desc"></span></span><span class="dur"></span>';
+        b.querySelector(".num").textContent = pad(ex.no);
+        b.querySelector(".name").textContent = ex.name;
+        b.querySelector(".desc").textContent = ex.desc;
+        b.querySelector(".dur").textContent = durLabel(ex);
+        b.addEventListener("click", function () { start(ex); });
+        li.appendChild(b); ul.appendChild(li);
+      });
+      root.appendChild(ul);
+    });
+  }
+
+  // ---------- Display wach halten ----------
+  var wakeLock = null, statusEl = document.getElementById("status");
+  async function keepAwake() {
+    if (!("wakeLock" in navigator)) { statusEl.textContent = "Display-Sperre kann hier nicht verhindert werden."; return; }
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+      statusEl.textContent = "Display bleibt an";
+      wakeLock.addEventListener("release", function () { wakeLock = null; });
+    } catch (e) { statusEl.textContent = "Display-Sperre konnte nicht verhindert werden."; }
+  }
+  function allowSleep() { if (wakeLock) { wakeLock.release(); wakeLock = null; } }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && current) keepAwake();
+  });
+
+  // ---------- Töne ----------
+  var ctx = null;
+  function primeAudio() {
+    try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); } catch (e) {}
+  }
+  function beep(count, freq) {
+    if (!ctx) return;
+    for (var i = 0; i < count; i++) {
+      var o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + i * 0.25;
+      o.frequency.value = freq; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+      o.start(t); o.stop(t + 0.22);
+    }
+  }
+
+  // ---------- Timer mit Phasen (Satz, Wechsel, Satz …) ----------
+  var timerEl = document.getElementById("timer"), bar = document.getElementById("bar"),
+      tTime = document.getElementById("tTime"), tPhase = document.getElementById("tPhase"),
+      pauseBtn = document.getElementById("pauseBtn"), pauseLabel = document.getElementById("pauseLabel");
+
+  var current = null, phases = [], pi = 0, endTime = 0, remaining = 0, paused = false, tick = null;
+
+  function buildPhases(ex) {
+    var p = [];
+    for (var i = 1; i <= ex.sets; i++) {
+      p.push({ len: ex.sec, label: ex.sets > 1 ? "Satz " + i + "/" + ex.sets : "" });
+      if (i < ex.sets) p.push({ len: SWITCH_SEC, label: "Seite wechseln", rest: true });
+    }
+    return p;
+  }
+  function enterPhase(i) {
+    pi = i; remaining = phases[i].len; endTime = Date.now() + remaining * 1000;
+    tPhase.textContent = phases[i].label;
+    timerEl.classList.toggle("rest", !!phases[i].rest);
+    draw();
+  }
+  function draw() {
+    tTime.textContent = fmt(remaining);
+    bar.style.width = ((1 - remaining / phases[pi].len) * 100) + "%";
+  }
+  function start(ex) {
+    primeAudio();
+    current = ex; phases = buildPhases(ex); paused = false;
+    document.getElementById("tFig").innerHTML = F[ex.fig];
+    document.getElementById("tName").textContent = ex.name;
+    document.getElementById("tDesc").textContent = ex.desc;
+    document.getElementById("tSection").textContent = ex.section;
+    pauseLabel.textContent = "Pause"; timerEl.classList.remove("paused"); timerEl.classList.add("open");
+    enterPhase(0);
+    keepAwake();
+    tick = setInterval(function () {
+      if (paused) return;
+      remaining = Math.max(0, (endTime - Date.now()) / 1000);
+      draw();
+      if (remaining <= 0) {
+        if (pi + 1 < phases.length) { beep(1, 660); enterPhase(pi + 1); }
+        else finish();
+      }
+    }, 100);
+  }
+  function close() {
+    clearInterval(tick); tick = null; current = null;
+    allowSleep(); statusEl.textContent = "";
+    timerEl.classList.remove("open", "rest");
+  }
+  function finish() {
+    clearInterval(tick); tick = null;
+    beep(2, 880);
+    tPhase.textContent = ""; tTime.textContent = "Fertig";
+    setTimeout(close, 1200);
+  }
+  pauseBtn.addEventListener("click", function () {
+    if (!current || !tick) return;
+    if (paused) endTime = Date.now() + remaining * 1000;
+    paused = !paused;
+    pauseLabel.textContent = paused ? "Weiter" : "Pause";
+    timerEl.classList.toggle("paused", paused);
+  });
+  document.getElementById("stopBtn").addEventListener("click", close);
+
+  render();
+})();
+</script>
+</body>
+</html>
