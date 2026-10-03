@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #FFFFFF; --ink: #000000; --muted: #7A7A7A; --line: #000000; --hair: #E6E6E6; --press: #F4F4F4;
+    --bg: #FFFFFF; --ink: #000000; --muted: #7A7A7A; --line: #000000; --hair: #E6E6E6; --press: #F4F4F4; --ring: #CFCFCF;
     --font: "Inter Tight", -apple-system, "Helvetica Neue", Arial, sans-serif;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
@@ -21,11 +21,11 @@
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #000000; --ink: #FFFFFF; --muted: #8C8C8C; --line: #FFFFFF; --hair: #262626; --press: #141414;
+      --bg: #000000; --ink: #FFFFFF; --muted: #8C8C8C; --line: #FFFFFF; --hair: #262626; --press: #141414; --ring: #3D3D3D;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #000000; --ink: #FFFFFF; --muted: #8C8C8C; --line: #FFFFFF; --hair: #262626; --press: #141414;
+    --bg: #000000; --ink: #FFFFFF; --muted: #8C8C8C; --line: #FFFFFF; --hair: #262626; --press: #141414; --ring: #3D3D3D;
   }
   *, *::before, *::after { box-sizing: inherit; }
   html { height: 100%; -webkit-text-size-adjust: 100%; }
@@ -33,6 +33,7 @@
          font: 400 16px/1.4 var(--font); -webkit-font-smoothing: antialiased;
          -webkit-tap-highlight-color: transparent; }
   button { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
   :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
   /* ---------- Liste ---------- */
@@ -54,8 +55,30 @@
   h2 small { font-size: 13px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
   h2.plain { margin-top: 0; }
   ul { list-style: none; margin: 0; padding: 0; }
-  li { border-bottom: 1px solid var(--hair); }
-  .row { width: 100%; display: grid; grid-template-columns: 24px 60px 1fr auto; gap: 0 14px; align-items: center;
+  li { border-bottom: 1px solid var(--hair); display: flex; align-items: flex-start; gap: 12px; }
+  .check { flex: none; width: 28px; height: 28px; margin-top: 15px; padding: 0; border-radius: 50%;
+           border: 1px solid var(--ring); background: none; display: grid; place-items: center; cursor: pointer;
+           font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
+           transition: background .18s, border-color .18s, color .18s; }
+  .check svg { width: 12px; height: 12px; }
+  .done .check { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .done .name, .done .dur, .done .dur small { color: var(--muted); }
+  .done .fig { opacity: .35; }
+  .prog { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px;
+          padding-top: 14px; border-top: 1px solid var(--hair); font-size: 15px; font-weight: 500; }
+  .link { background: none; border: 0; padding: 6px 0; font-size: 15px; font-weight: 500; color: var(--muted);
+          text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .pill { border: 0; border-radius: 22px; height: 42px; padding: 0 20px; background: var(--ink); color: var(--bg);
+          font-size: 15px; font-weight: 600; cursor: pointer; }
+  .pill.ghost { background: none; color: var(--ink); border: 1px solid var(--ink); }
+  .pill.ghost:active { background: var(--press); }
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+           z-index: 20; display: flex; align-items: center; gap: 18px; padding: 0 8px 0 20px; height: 52px; border-radius: 26px;
+           background: var(--ink); color: var(--bg); font-size: 15px; font-weight: 500; white-space: nowrap;
+           box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+  .toast button { background: none; border: 0; color: var(--bg); font-weight: 700; padding: 0 12px; height: 40px; cursor: pointer;
+                  text-decoration: underline; text-underline-offset: 3px; }
+  .row { flex: 1; min-width: 0; width: 100%; display: grid; grid-template-columns: 60px 1fr auto; gap: 0 14px; align-items: center;
          text-align: left; background: none; border: 0; padding: 16px 0; cursor: pointer; }
   .row:active { background: var(--press); }
   .num { align-self: start; padding-top: 3px; font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -112,9 +135,12 @@
       <div><b id="mCount"></b><span>Übungen</span></div>
       <div><b id="mMin"></b><span>Minuten</span></div>
     </div>
+    <div class="prog" id="prog" hidden><span id="progText"></span><button type="button" class="pill ghost" id="resetBtn">Zurücksetzen</button></div>
   </header>
   <div id="sections"></div>
 </main>
+
+<div class="toast" id="toast" hidden><span>Zurückgesetzt</span><button type="button" id="undoBtn">Rückgängig</button></div>
 
 <section class="timer" id="timer" aria-live="polite">
   <div class="progress"><i id="bar"></i></div>
@@ -209,12 +235,39 @@
   BLOCKS.forEach(function (b) {
     b.count = 0; b.total = 0;
     b.sections.forEach(function (s) { s.items.forEach(function (ex) {
-      ex.no = ++b.count; ex.section = s.title || b.title;
+      ex.no = ++b.count; ex.key = b.id + "-" + ex.no; ex.block = b.id; ex.section = s.title || b.title;
       b.total += ex.sec * ex.sets + (ex.sets - 1) * SWITCH_SEC; }); });
   });
 
   var active = 0;
   try { var saved = localStorage.getItem("block"); BLOCKS.forEach(function (b, i) { if (b.id === saved) active = i; }); } catch (e) {}
+
+  // ---------- Erledigt: je Block, Rücksetzen um Mitternacht (Ortszeit) oder manuell ----------
+  var DONE_KEY = "erledigt-v3", store = {};
+  try { store = JSON.parse(localStorage.getItem(DONE_KEY) || "{}") || {}; } catch (e) {}
+  function today() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function doneOf(id) {
+    var e = store[id];
+    if (!e || e.date !== today()) e = store[id] = { date: today(), keys: {} };
+    return e.keys;
+  }
+  function saveDone() { try { localStorage.setItem(DONE_KEY, JSON.stringify(store)); } catch (e) {} }
+  function markDone(ex) { doneOf(ex.block)[ex.key] = true; saveDone(); }
+
+  var toast = document.getElementById("toast"), undoState = null, toastTimer = null;
+  function resetBlock() {
+    var id = BLOCKS[active].id;
+    undoState = { id: id, keys: Object.assign({}, doneOf(id)) };
+    store[id] = { date: today(), keys: {} }; saveDone(); render();
+    toast.hidden = false; clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.hidden = true; undoState = null; }, 5000);
+  }
+  document.getElementById("resetBtn").addEventListener("click", resetBlock);
+  document.getElementById("undoBtn").addEventListener("click", function () {
+    if (undoState) { store[undoState.id] = { date: today(), keys: undoState.keys }; saveDone(); render(); }
+    undoState = null; toast.hidden = true; clearTimeout(toastTimer);
+  });
+  var CHECK = '<svg viewBox="0 0 12 12" aria-hidden="true"><polyline points="2.2,6.3 4.9,8.9 9.8,3.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   // ---------- Tabs ----------
   var tabs = document.getElementById("tabs");
@@ -230,12 +283,17 @@
   // ---------- Liste ----------
   var root = document.getElementById("sections");
   function render() {
-    var B = BLOCKS[active];
+    var B = BLOCKS[active], done = doneOf(B.id);
     [].forEach.call(tabs.children, function (t, i) { t.setAttribute("aria-pressed", i === active ? "true" : "false"); });
     document.getElementById("title").textContent = B.title;
     document.getElementById("mCount").textContent = B.count;
     document.getElementById("mMin").textContent = Math.round(B.total / 60);
     document.title = B.title;
+    var n = Object.keys(done).length, all = n === B.count;
+    document.getElementById("prog").hidden = n === 0;
+    document.getElementById("progText").textContent = all ? "Alles erledigt" : n + " von " + B.count + " erledigt";
+    var rb = document.getElementById("resetBtn");
+    rb.textContent = all ? "Neue Runde" : "Zurücksetzen"; rb.className = all ? "pill" : "pill ghost";
     root.textContent = "";
     B.sections.forEach(function (s) {
       var h = document.createElement("h2");
@@ -248,15 +306,23 @@
       var ul = document.createElement("ul");
       s.items.forEach(function (ex) {
         var li = document.createElement("li");
+        var isDone = !!done[ex.key];
+        if (isDone) li.className = "done";
+        var c = document.createElement("button"); c.type = "button"; c.className = "check";
+        c.setAttribute("aria-label", ex.name + (isDone ? " als offen markieren" : " als erledigt markieren"));
+        if (isDone) c.innerHTML = CHECK; else c.textContent = pad(ex.no);
+        c.addEventListener("click", function () {
+          if (done[ex.key]) delete done[ex.key]; else done[ex.key] = true;
+          saveDone(); render();
+        });
         var b = document.createElement("button"); b.type = "button"; b.className = "row";
-        b.innerHTML = '<span class="num"></span><svg class="fig" viewBox="0 0 80 50" aria-hidden="true">' + F[ex.fig] +
+        b.innerHTML = '<svg class="fig" viewBox="0 0 80 50" aria-hidden="true">' + F[ex.fig] +
           '</svg><span class="txt"><span class="name"></span><span class="desc"></span></span><span class="dur"></span>';
-        b.querySelector(".num").textContent = pad(ex.no);
         b.querySelector(".name").textContent = ex.name;
         b.querySelector(".desc").textContent = ex.desc;
         b.querySelector(".dur").textContent = durLabel(ex);
         b.addEventListener("click", function () { start(ex); });
-        li.appendChild(b); ul.appendChild(li);
+        li.append(c, b); ul.appendChild(li);
       });
       root.appendChild(ul);
     });
@@ -342,11 +408,13 @@
   function close() {
     clearInterval(tick); tick = null; current = null;
     allowSleep(); statusEl.textContent = "";
+    render();
     timerEl.classList.remove("open", "rest");
   }
   function finish() {
     clearInterval(tick); tick = null;
     beep(2, 880);
+    markDone(current);
     tPhase.textContent = ""; tTime.textContent = "Fertig";
     setTimeout(close, 1200);
   }
@@ -357,7 +425,12 @@
     pauseLabel.textContent = paused ? "Weiter" : "Pause";
     timerEl.classList.toggle("paused", paused);
   });
-  document.getElementById("stopBtn").addEventListener("click", close);
+  document.getElementById("stopBtn").addEventListener("click", function () {
+    if (current && timerEl.classList.contains("reps")) markDone(current);
+    close();
+  });
+  // App über Nacht offen gelassen: beim Zurückkehren Tag prüfen
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && !current) render(); });
 
   render();
 })();
